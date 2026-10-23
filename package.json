@@ -1,0 +1,28 @@
+{
+  "name": "ticket-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n Backend,Frontend \"node --watch server.js\" \"vite --host 127.0.0.1\"",
+    "build": "vite build",
+    "start": "node server.js",
+    "test": "node --test server.test.js backend/assignments.test.js backend/migrations.test.js scripts/db-backup.test.mjs src/lib/http.test.js && python3 -m unittest discover -s scripts -p '*_test.py'",
+    "smoke": "node scripts/smoke-test.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "test:frontend": "node --test src/lib/http.test.js"
+  },
+  "dependencies": {
+    "@clr/ui": "^18.4.0",
+    "express": "^5.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "vite": "^8.0.0"
+  }
+}
