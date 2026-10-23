@@ -1,0 +1,22 @@
+:root {
+  font-family: "Clarity City", "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  color: #243746;
+  background: #f4f7fa;
+  --text: #243746;
+  --muted: #526476;
+  --accent: #006699;
+  --accent-hover: #004f77;
+  --accent-soft: #eaf4fa;
+  --border: #ced8e1;
+  --surface: #ffffff;
+  --surface-subtle: #f4f7fa;
+  --radius: 4px;
+  --shadow: 0 1px 2px #24374608;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+}
