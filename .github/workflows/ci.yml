@@ -1,0 +1,119 @@
+name: CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Validate Compose configuration
+        env:
+          APP_IMAGE: ticket-dashboard:ci
+          PUBLIC_HOST: tickets.example.com
+        run: |
+          docker compose -f compose.app.yml config --quiet
+          docker compose -f compose.ops.yml config --quiet
+          docker compose -f compose.public.yml config --quiet
+          docker run --rm -e PUBLIC_HOST -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" "$(docker compose -f compose.public.yml config --images)" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Build disposable application image
+        run: docker build --build-arg APP_REVISION="$GITHUB_SHA" -t ticket-dashboard:ci .
+      - name: Verify container, persistence, shutdown and restore
+        env:
+          EXPECTED_REVISION: ${{ github.sha }}
+        run: bash scripts/container-smoke.sh ticket-dashboard:ci
+      - name: Scan the pull-request image
+        run: bash scripts/scan-image.sh ticket-dashboard:ci
+      - name: Retain verification scan
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: verification-scan-${{ github.sha }}
+          path: reports/trivy.json
+          retention-days: 7
+          if-no-files-found: warn
+  publish:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: ticket-poc-release
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/vagharshak777/team-ticket-hub
+      TRIVY: aquasec/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Build once for testing, scanning and publication
+        run: docker build --build-arg APP_REVISION="$GITHUB_SHA" -t ticket-dashboard:release .
+      - name: Test the exact release image
+        env:
+          EXPECTED_REVISION: ${{ github.sha }}
+        run: |-
+          bash scripts/container-smoke.sh ticket-dashboard:release
+          bash scripts/scan-image.sh ticket-dashboard:release
+      - name: Publish the tested commit image and promote the current main head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+          docker tag ticket-dashboard:release "$IMAGE:sha-$GITHUB_SHA"
+          docker push "$IMAGE:sha-$GITHUB_SHA"
+          digest="$(docker image inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{index .RepoDigests 0}}')"
+          export RELEASE_DIGEST="$digest"
+          export PROMOTED=false
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA" ]; then
+            docker tag ticket-dashboard:release "$IMAGE:poc"
+            docker push "$IMAGE:poc"
+            export PROMOTED=true
+          fi
+          python3 - <<'PY'
+          import datetime, json, os, re
+          digest = os.environ['RELEASE_DIGEST']
+          assert re.fullmatch(re.escape(os.environ['IMAGE']) + r'@sha256:[a-f0-9]{64}', digest)
+          record = {
+              'image': digest, 'revision': os.environ['GITHUB_SHA'],
+              'promoted': os.environ['PROMOTED'] == 'true',
+              'workflow': os.environ['GITHUB_SERVER_URL'] + '/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + os.environ['GITHUB_RUN_ID'],
+              'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          }
+          with open('reports/release.json', 'w') as output:
+              json.dump(record, output, indent=2)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as output:
+              output.write('```json\n' + json.dumps(record, indent=2) + '\n```\n')
+          PY
+      - name: Retain scan and release evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-evidence-${{ github.sha }}
+          path: reports/*.json
+          retention-days: 14
+          if-no-files-found: warn
