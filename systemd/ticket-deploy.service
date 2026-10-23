@@ -1,0 +1,14 @@
+[Unit]
+Description=Deploy the approved Ticket Dashboard digest
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ticket-poc
+Environment=STATE_DIR=/var/lib/ticket-poc
+Environment=BACKUP_DIR=/var/backups/ticket-poc
+ExecStart=/opt/ticket-poc/scripts/poll-release.sh
+TimeoutStartSec=10min
+UMask=0077

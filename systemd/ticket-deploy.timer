@@ -1,0 +1,10 @@
+[Unit]
+Description=Check the approved Ticket Dashboard release every minute
+
+[Timer]
+OnBootSec=60s
+OnUnitInactiveSec=60s
+Unit=ticket-deploy.service
+
+[Install]
+WantedBy=timers.target

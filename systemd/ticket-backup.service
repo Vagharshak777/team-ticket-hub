@@ -1,0 +1,15 @@
+[Unit]
+Description=Take a verified Ticket Dashboard SQLite snapshot
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ticket-poc
+Environment=STATE_DIR=/var/lib/ticket-poc
+Environment=BACKUP_DIR=/var/backups/ticket-poc
+ExecStart=/opt/ticket-poc/scripts/backup.sh
+TimeoutStartSec=5min
+Restart=on-failure
+RestartSec=5min
+UMask=0077

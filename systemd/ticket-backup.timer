@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up Ticket Dashboard daily
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 UTC
+Persistent=true
+Unit=ticket-backup.service
+
+[Install]
+WantedBy=timers.target
