@@ -1,0 +1,12 @@
+**
+!package.json
+!package-lock.json
+!index.html
+!vite.config.js
+!server.js
+!backend/
+!backend/**
+!src/
+!src/**
+!scripts/
+!scripts/db-backup.mjs

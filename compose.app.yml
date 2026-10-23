@@ -1,0 +1,33 @@
+name: ticket-poc
+services:
+  app:
+    image: ${APP_IMAGE:?Set APP_IMAGE to an approved image reference}
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-3001}:3001"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3001"
+      DATABASE_PATH: /app/data/dashboard.sqlite
+      COOKIE_SECURE: "${COOKIE_SECURE:-false}"
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+    volumes:
+      - app_data:/app/data
+    networks: [poc]
+    stop_grace_period: 30s
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+volumes:
+  app_data:
+    name: ${APP_VOLUME:-ticket-poc-app-data}
+networks:
+  poc:
+    external: true
+    name: ${POC_NETWORK:-ticket-poc-net}

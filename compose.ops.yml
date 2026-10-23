@@ -1,0 +1,97 @@
+name: ticket-poc-ops
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+services:
+  portainer:
+    image: portainer/portainer-ce:2.45.2@sha256:03f94a406496dc84d37b552795fc424ccad8d0d7200353b6a82915f6e8f73ab0
+    restart: unless-stopped
+    ports: ["127.0.0.1:9443:9443"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks: [ops]
+    logging: *logging
+  cadvisor:
+    image: ghcr.io/google/cadvisor:0.60.6@sha256:b8e7d1093144fd088f425ff003d75a4aa405de075db78dae3bc563730b1bd07a
+    restart: unless-stopped
+    # The dedicated Linux lab host is the reference environment.
+    privileged: true
+    devices: ["/dev/kmsg:/dev/kmsg"]
+    command: ["--docker_only=true", "--housekeeping_interval=15s", "--store_container_labels=true"]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - ${DOCKER_DATA_ROOT:-/var/lib/docker}:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    networks: [ops]
+    logging: *logging
+  prometheus:
+    image: prom/prometheus:v3.15.1@sha256:fa3302279710be2f21a8301ec17a8b4f2301fd829bd113839b3b6b02b6f191a2
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --storage.tsdb.retention.size=2GB
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks: [ops]
+    logging: *logging
+  grafana:
+    image: grafana/grafana:13.2.4@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f
+    restart: unless-stopped
+    ports: ["127.0.0.1:3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    secrets: [grafana_admin_password]
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [ops]
+    logging: *logging
+  kuma:
+    image: louislam/uptime-kuma:2.5.6@sha256:9912da7d7d9b6ddc0c2d904beb84d24689c1ed9c33b81419eb9008663a92a329
+    restart: unless-stopped
+    ports: ["127.0.0.1:3002:3001"]
+    volumes: ["uptime_data:/app/data"]
+    networks: [ops, poc]
+    logging: *logging
+  dozzle:
+    image: amir20/dozzle:v11.3.4@sha256:8796ae7e1ecbe011482319cb7040e69aae91a0632b87bbe24b3f643e7455d94b
+    restart: unless-stopped
+    ports: ["127.0.0.1:8081:8080"]
+    environment:
+      DOZZLE_AUTH_PROVIDER: simple
+      DOZZLE_ENABLE_ACTIONS: "false"
+      DOZZLE_ENABLE_SHELL: "false"
+      DOZZLE_NO_ANALYTICS: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - dozzle_data:/data
+      - type: bind
+        source: ./secrets/dozzle-users.yml
+        target: /data/users.yml
+        read_only: true
+        bind: {create_host_path: false}
+    networks: [ops]
+    logging: *logging
+volumes:
+  portainer_data:
+  prometheus_data:
+  grafana_data:
+  uptime_data:
+  dozzle_data:
+secrets:
+  grafana_admin_password:
+    file: ./secrets/grafana-admin-password
+networks:
+  ops:
+  poc:
+    external: true
+    name: ${POC_NETWORK:-ticket-poc-net}

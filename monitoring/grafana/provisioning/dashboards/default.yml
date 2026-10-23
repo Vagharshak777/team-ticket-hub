@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: Ticket POC
+    orgId: 1
+    folder: Ticket POC
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards
