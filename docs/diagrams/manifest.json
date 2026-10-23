@@ -1,0 +1,119 @@
+[
+  {
+    "id": "01-system-context",
+    "title": "The project in one picture",
+    "question": "Who uses the product, and what supports it?",
+    "scope": "Product overview",
+    "notes": ["Managers organize and assign work. Employees complete checklists and keep personal tasks.", "The application is React and Express in one production container, with SQLite on a persistent volume.", "Six operations containers support the application. The configured GitHub-to-VPS delivery path is a separate capability to demonstrate on a server."],
+    "say": "I built a small team ticket application and an operations environment around it. The product, storage, delivery and monitoring each have a clear responsibility.",
+    "proof": ["src/App.jsx", "backend/app.js", "compose.app.yml", "compose.ops.yml"]
+  },
+  {
+    "id": "02-local-infrastructure",
+    "title": "What actually runs on this Mac",
+    "question": "Where are the seven containers, networks and data volumes?",
+    "scope": "Running local stack",
+    "notes": ["Colima provides the Linux VM that runs Docker; the browser remains on macOS.", "Published ports bind to 127.0.0.1. Kuma belongs to both networks so it can probe app:3001.", "The application database lives in ticket-poc-local-data. Bind-mounted monitoring configuration comes from this repository.", "Prometheus and cAdvisor gain browser ports only through compose.ops.local.yml. Their metrics describe the Linux VM and its containers."],
+    "say": "Containers share a Linux host inside Colima. I use separate Compose projects and networks, and I keep persistent state outside replaceable containers.",
+    "proof": ["compose.app.yml", "compose.ops.yml", "compose.ops.local.yml", "docs/local-docker.md"]
+  },
+  {
+    "id": "03-code-structure",
+    "title": "From React components to SQL",
+    "question": "Which part of the source owns each responsibility?",
+    "scope": "Application architecture",
+    "notes": ["App selects views; feature components call callbacks; useWorkspace coordinates asynchronous work.", "lib/http.js adds the /api prefix, sends cookies, parses JSON and preserves error status.", "Express handles request middleware, then routes validate input and enforce permissions before repository SQL.", "This is a modular monolith. The user routes currently query SQLite directly; a separate service layer has not been added."],
+    "say": "I separated presentation, HTTP transport, request rules and data access so a change has an obvious home without creating unnecessary services.",
+    "proof": ["src/app/useWorkspace.js", "src/lib/http.js", "backend/app.js", "backend/repositories/tickets.js"]
+  },
+  {
+    "id": "04-data-model",
+    "title": "Three tables and two meanings of user",
+    "question": "How are accounts, sessions and tasks related?",
+    "scope": "Persistence",
+    "notes": ["users stores identity, role and a salted password hash; sessions stores hashed random tokens with expiry.", "tickets.user_id is the creator/owner. tickets.assignee_id is optional and must point to an employee when assigned through the API.", "Checklist steps are a JSON array in a TEXT column, not a separate table. Completion is derived from done booleans.", "Role and assignment columns are additive migrations. Existing users remain employees."],
+    "say": "I kept the schema small. The important distinction is that the person who owns a task and the person assigned to do it can be different.",
+    "proof": ["backend/database.js", "backend/domain/serializers.js", "backend/migrations.test.js"]
+  },
+  {
+    "id": "05-login-session",
+    "title": "What happens when a user signs in",
+    "question": "How does the server recognize the next request?",
+    "scope": "Authentication",
+    "notes": ["Passwords are checked with Node scrypt and a timing-safe comparison, using a random salt per stored password.", "A successful login creates a cryptographically random token. SQLite stores only its SHA-256 hash.", "The browser sends an HttpOnly, SameSite=Lax cookie. Secure is enabled for HTTPS deployment; the session lasts seven days.", "Each API request resolves the cookie to a non-expired session and its user. No JWT, localStorage token or separate identity provider is involved."],
+    "say": "Authentication proves identity. I use a server-side session because expiry, logout and persistence are straightforward for a single-instance app.",
+    "proof": ["backend/security/passwords.js", "backend/routes/accounts.js", "backend/app.js", "server.test.js"]
+  },
+  {
+    "id": "06-ticket-lifecycle",
+    "title": "How a task becomes complete",
+    "question": "Is task status stored or calculated?",
+    "scope": "Product behavior",
+    "notes": ["Open means no checklist items are done; in progress means some are done; completed means all are done.", "Unchecking an item can reopen a completed task. A one-step task can move directly between open and completed.", "The schema has no status column. The UI calculates these labels from the same checklist array.", "Assignment does not change the status calculation, and authorization still governs edits and deletion."],
+    "say": "I derive completion from the checklist so the displayed status cannot drift away from the actual steps.",
+    "proof": ["src/features/tickets/ticketModel.js", "src/features/dashboard/DashboardPage.jsx", "src/features/tickets/TicketList.jsx"]
+  },
+  {
+    "id": "07-ticket-authorization",
+    "title": "Who may change a ticket",
+    "question": "Why is hiding a button insufficient?",
+    "scope": "Authorization",
+    "notes": ["A valid session establishes the user; SQL limits visibility to a manager, owner or assignee.", "Managers can manage all tasks and assignments. Employees can manage personal tasks, but cannot assign them.", "An employee assigned someone else's task can change done flags only. The backend compares the name, task, step count and step text.", "An invisible or absent ticket returns 404. An authenticated user trying a forbidden change to a visible ticket gets 403."],
+    "say": "The interface helps the user, but the server is the authority. I test the API directly to prove an employee cannot bypass restrictions.",
+    "proof": ["backend/routes/tickets.js", "backend/repositories/tickets.js", "backend/routes/users.js", "backend/assignments.test.js"]
+  },
+  {
+    "id": "08-delivery-pipeline",
+    "title": "From a change to a release image",
+    "question": "What does CI verify, and when can an image be published?",
+    "scope": "Configured CI/CD",
+    "notes": ["verify runs installation, tests, frontend build, Compose/Caddy validation, container recovery checks and a Trivy scan.", "Only trusted main events enter publish. That job builds one release image and tests/scans it before publishing that same image.", "The sha-commit tag identifies source, the digest identifies image contents, and poc is a movable announcement channel.", "A stale main run can retain its source tag but cannot promote poc. Branch protection and package visibility still require GitHub configuration."],
+    "say": "I separate verification from publication, and I deploy immutable image digests rather than trusting a mutable tag on the server.",
+    "proof": [".github/workflows/ci.yml", "scripts/scan-image.sh", "scripts/container-smoke.sh", "scripts/poll-release.sh"]
+  },
+  {
+    "id": "09-deployment-recovery",
+    "title": "A deployment can fail safely",
+    "question": "How is a failed or interrupted rollout recovered?",
+    "scope": "Configured Linux operator",
+    "notes": ["The operator validates the approved digest, image revision, free space and Compose configuration before changing the app.", "It takes a predeployment snapshot when a current release exists and records pending before replacement.", "Success is committed only after readiness, frontend and source revision checks. Failure reapplies the last successful current image.", "If recovery fails, pending remains. The next operation first attempts recovery; the recorded failed digest is suppressed unless deliberately retried."],
+    "say": "I treat deployment as a state transition. A new container starting is not enough evidence to mark a release successful.",
+    "proof": ["scripts/operations.py", "scripts/operations_test.py", "docs/runbook.md"]
+  },
+  {
+    "id": "10-backup-restore",
+    "title": "Recover the data, not only the image",
+    "question": "How do you know a SQLite backup is usable?",
+    "scope": "Recovery design and container smoke test",
+    "notes": ["The online SQLite backup API captures committed data even when WAL is active. Copying the live main file alone is insufficient.", "The helper checks integrity and expected tables; managed operations add the image, checksum and revision metadata.", "A restore refuses an existing volume and is first verified using an isolated app, network and port.", "Image rollback does not reverse schema or user-data changes. Local backup files still need off-host protection against host loss."],
+    "say": "I verify restoration with a real account, persisted session and ticket. A backup file existing is only the start of recovery evidence.",
+    "proof": ["scripts/db-backup.mjs", "scripts/db-backup.test.mjs", "scripts/container-smoke.sh", "scripts/operations.py"]
+  },
+  {
+    "id": "11-observability",
+    "title": "Different tools answer different questions",
+    "question": "Is it reachable, is it busy, and what happened?",
+    "scope": "Running local monitoring",
+    "notes": ["cAdvisor exports container metrics; Prometheus collects them; Grafana visualizes queries. Prometheus pulls rather than receiving pushed app metrics.", "Kuma probes readiness and the homepage. A successful cAdvisor scrape does not prove users can use the app.", "Dozzle reads Docker logs. Request IDs help correlate events without recording raw URLs, passwords or cookies.", "Portainer manages Docker resources. No external notification destination, application latency metric or distributed tracing is configured."],
+    "say": "I combine resource metrics, HTTP availability checks and structured logs because none of those signals alone explains the whole system.",
+    "proof": ["monitoring/prometheus.yml", "monitoring/grafana/dashboards/containers.json", "backend/app.js", "compose.ops.yml"]
+  },
+  {
+    "id": "12-public-deployment",
+    "title": "How the optional public server differs",
+    "question": "What changes when the app is exposed through HTTPS?",
+    "scope": "Optional VPS design; live exercise pending",
+    "notes": ["Caddy publishes 80/443, obtains a certificate for the hostname, and forwards traffic to app:3001 on the private network.", "Secure cookies and a trusted single proxy hop are configured together so same-origin writes work over HTTPS.", "Deployment and backup timers run on a Linux host. They are not running inside the current macOS demonstration.", "Management tools remain on loopback and can be reached with SSH forwarding. There is one app instance, with brief rollout downtime and no high availability."],
+    "say": "The local demonstration proves the application and monitoring. The repository also includes a public-server design that needs its own live acceptance drill.",
+    "proof": ["compose.public.yml", "Caddyfile", "scripts/setup-server.sh", "systemd/ticket-deploy.timer", "docs/public-deployment.md"]
+  },
+  {
+    "id": "13-image-build",
+    "title": "What goes into the application image",
+    "question": "Why use two Docker build stages?",
+    "scope": "Verified local image",
+    "notes": ["The build stage installs locked packages, compiles the frontend and prunes development dependencies.", "The runtime stage copies the compiled frontend, Express code, runtime packages and database backup helper.", "The runtime removes bundled package managers and runs Node as UID 1000. Compose drops capabilities and sets resource limits.", "SQLite is written to a mounted volume, not committed into the image. The container healthcheck probes database readiness."],
+    "say": "I build once into a runtime artifact. The image contains code and dependencies; the mounted volume owns changing data.",
+    "proof": ["Dockerfile", ".dockerignore", "compose.app.yml", "scripts/container-smoke.sh"]
+  }
+]

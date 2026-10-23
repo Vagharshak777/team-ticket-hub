@@ -11,25 +11,25 @@ const accounts = [
   {
     name: "Jordan Lee",
     email: "manager@example.test",
-    password: "manager123",
+    password: "Admin@123",
     role: "manager",
   },
   {
     name: "Alex Morgan",
     email: "alex@example.test",
-    password: "alex12345",
+    password: "Admin@123",
     role: "employee",
   },
   {
     name: "Sara Patel",
     email: "sara@example.test",
-    password: "sara12345",
+    password: "Admin@123",
     role: "employee",
   },
   {
     name: "Maya Bennett",
     email: "demo@example.test",
-    password: "demo12345",
+    password: "Admin@123",
     role: "employee",
   },
 ];

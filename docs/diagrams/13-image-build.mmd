@@ -1,0 +1,20 @@
+flowchart LR
+    source["Source checkout<br/>Lockfile, React, Express, backend modules"]
+    subgraph build["Build stage · pinned Node 22.23.3 image digest"]
+      ci["npm ci<br/>Install locked dependencies"]
+      vite["npm run build<br/>React source → dist assets"]
+      prune["npm prune --omit=dev"]
+      ci --> vite --> prune
+    end
+    subgraph runtime["Runtime stage · same pinned Node base"]
+      copy["Copy dist, runtime dependencies,<br/>server.js, backend and backup helper"]
+      clean["Remove bundled package managers<br/>Prepare writable /app/data"]
+      user["USER node · UID 1000<br/>node server.js + readiness healthcheck"]
+      copy --> clean --> user
+    end
+    image["ticket-dashboard:local<br/>One app container serves UI + API"]
+    data[("Named volume<br/>Database survives container replacement")]
+    source --> ci
+    prune --> copy
+    user --> image
+    image --- data

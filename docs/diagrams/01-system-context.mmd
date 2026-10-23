@@ -1,0 +1,22 @@
+flowchart LR
+    manager["Manager<br/>Plans and assigns work"]
+    employee["Employee<br/>Completes assigned checklists"]
+    operator["Operator<br/>Runs and troubleshoots the stack"]
+    app["Team Ticket Hub<br/>React UI + Express API"]
+    db[("SQLite<br/>Users, sessions, tickets")]
+    ops["Operations tools<br/>Metrics, uptime, logs, containers"]
+    delivery["Configured delivery path<br/>GitHub Actions → GHCR → Linux host"]
+    manager -->|"Browser / HTTP"| app
+    employee -->|"Browser / HTTP"| app
+    app -->|"SQL in the app process"| db
+    operator -->|"Local browser interfaces"| ops
+    ops -.->|"Observe or manage"| app
+    delivery -.->|"Release image; VPS exercise pending"| app
+    classDef people fill:#e0e7ff,stroke:#4f46e5,color:#172554
+    classDef product fill:#dbeafe,stroke:#2563eb,color:#172554
+    classDef storage fill:#d1fae5,stroke:#059669,color:#064e3b
+    classDef planned fill:#fff7ed,stroke:#ea580c,color:#7c2d12,stroke-dasharray:5 4
+    class manager,employee,operator people
+    class app,ops product
+    class db storage
+    class delivery planned

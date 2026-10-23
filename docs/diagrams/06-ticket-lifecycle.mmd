@@ -1,0 +1,16 @@
+stateDiagram-v2
+    [*] --> Open: Create ticket with all steps unchecked
+    Open --> InProgress: Complete at least one step
+    InProgress --> Completed: Complete every step
+    Open --> Completed: Complete the only step
+    Completed --> InProgress: Reopen one of several completed steps
+    Completed --> Open: Uncheck the only completed step
+    InProgress --> Open: Uncheck all steps
+    Open --> [*]: Authorized deletion
+    InProgress --> [*]: Authorized deletion
+    Completed --> [*]: Authorized deletion
+    note right of InProgress
+      Status is calculated from checklist booleans.
+      There is no persisted status column.
+      Assignment and ownership are separate.
+    end note

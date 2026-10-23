@@ -1,7 +1,7 @@
 # Local Docker stack
 
-Run these commands from the repository root. On this Mac, Docker Engine runs in
-Colima with 4 CPUs, 6 GB RAM and a 60 GB data disk.
+Run these commands from `/Users/vaghiksargsyan/Desktop/Projects/team-ticket-hub`.
+On this Mac, Docker Engine runs in Colima with 4 CPUs, 6 GB RAM and a 60 GB data disk.
 
 ## Browser URLs
 
@@ -25,6 +25,7 @@ Portainer uses a self-signed certificate for its local HTTPS interface.
 ## Start or resume
 
 ```sh
+cd /Users/vaghiksargsyan/Desktop/Projects/team-ticket-hub
 colima start
 docker network inspect ticket-poc-net >/dev/null 2>&1 || docker network create ticket-poc-net
 docker compose --env-file .env -f compose.app.yml up -d --wait

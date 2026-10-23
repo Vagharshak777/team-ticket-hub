@@ -1,0 +1,26 @@
+flowchart LR
+    subgraph client["Browser · frontend source"]
+      app["App.jsx<br/>Selects page and composes views"]
+      views["Feature components<br/>Auth, Dashboard, Tasks, Users, Profile"]
+      state["useWorkspace<br/>Session + tickets + operations"]
+      http["lib/http.js<br/>JSON, cookies, errors, cancellation"]
+      app --> views
+      views -->|"Callbacks"| state
+      state --> http
+    end
+    subgraph server["Node.js · backend source"]
+      entry["server.js → runtime.js<br/>Configuration and lifecycle"]
+      middleware["app.js<br/>Logs → health → origin → JSON → session"]
+      routes["routes/<br/>HTTP endpoints and authorization"]
+      domain["domain/<br/>Validation and public responses"]
+      repo["repositories/<br/>SQL queries and visible records"]
+      security["security/passwords.js<br/>scrypt + token hashing"]
+      entry --> middleware --> routes
+      routes --> domain
+      routes --> repo
+      routes --> security
+    end
+    db[("database.js → SQLite")]
+    http -->|"HTTP /api + JSON"| middleware
+    repo --> db
+    middleware -->|"Resolve session"| db

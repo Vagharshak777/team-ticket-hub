@@ -1,0 +1,17 @@
+flowchart TB
+    req["Request an existing ticket"] --> auth{"Valid unexpired session?"}
+    auth -->|"No"| unauth["401 · Sign in"]
+    auth -->|"Yes"| visible{"Manager OR owner OR assignee?"}
+    visible -->|"No / missing row"| missing["404 · Ticket not found"]
+    visible -->|"Yes"| role{"Manager?"}
+    role -->|"Yes"| full["Read, edit, delete<br/>Assign only to a valid employee or nobody"]
+    role -->|"No"| owner{"Owns this ticket?"}
+    owner -->|"Yes"| personal["Read, edit and delete personal ticket<br/>Cannot change assignment"]
+    owner -->|"No: assigned employee"| assigned["Read ticket<br/>Update checklist done flags only"]
+    assigned --> checks{"Same name, description,<br/>step count and step text?"}
+    checks -->|"Yes / PATCH"| save["Save checklist progress"]
+    checks -->|"No / or DELETE"| forbidden["403 · Action forbidden"]
+    classDef denied fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    classDef allowed fill:#d1fae5,stroke:#059669,color:#064e3b
+    class unauth,missing,forbidden denied
+    class full,personal,save allowed

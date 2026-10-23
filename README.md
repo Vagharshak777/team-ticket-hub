@@ -1,22 +1,69 @@
-# Ticket Dashboard
+# Team Ticket Hub
 
-React 19, Vite 8, Express 5 and SQLite, with a local Linux DevOps proof of concept.
-Users can register, sign in, manage their own tickets and checklists, and edit their profile.
+A team task application with manager assignment, employee checklists, persistent login,
+and a Docker operations environment you can inspect and explain.
 
-For a public VPS with automatic HTTPS, one-minute deployment polling and daily backups,
-start with [the public deployment guide](docs/public-deployment.md). Monitoring is optional
-on that path; the full local operations stack is described below.
-If the hosting account will be created later, copy `deployment.env.example` to
-`deployment.env` and fill in its account/server placeholders when ready.
+The product uses **React 19, Vite 8, Express 5 and SQLite**. Its production image serves
+the compiled frontend and JSON API in **one application container**. Six supporting
+containers provide metrics, dashboards, availability checks, logs and Docker management.
 
-The DevOps setup includes a non-root Docker image, GitHub Actions checks, scanned GHCR
-releases, digest-based deployment with rollback, SQLite snapshots, Portainer, Prometheus,
-cAdvisor, Grafana, Uptime Kuma and Dozzle.
+![People, application, storage and operations](docs/diagrams/01-system-context.svg)
 
-## Run the app
+**Preparing for an interview?** Start with the [learning path](docs/README.md), open
+the [visual presentation](docs/presentation.html), then practice the
+[interview walkthrough](docs/interview-guide.md). Download/clone the repository to open
+the HTML presentation locally; GitHub displays the individual SVG diagrams directly.
 
-Use Node **22.23.3** (`.nvmrc`) and Python 3 for the operations tests. Node 22.16 or later
-supports the SQLite backup helper. With nvm installed:
+## What the application does
+
+| User | Capabilities |
+| --- | --- |
+| Manager | View all tasks and team members; create, edit, delete, assign and reassign tasks |
+| Employee | Manage personal tasks; view assigned tasks; update assigned checklist completion |
+| Every signed-in user | View a dashboard and personal workspace; edit name, email and date of birth |
+
+An assigned employee cannot change someone else's task definition or delete it.
+These restrictions are enforced by the API as well as the interface. Registration
+creates an employee account and checks that the supplied birth date indicates age 18+;
+it does not verify identity. There is no public manager-signup option.
+
+Task status is calculated from checklist steps: **Open → In progress → Completed**.
+Unchecking a step can reopen work. The database does not store a separate status field.
+
+## Open the running local stack
+
+The configured Mac checkout is `/Users/vaghiksargsyan/Desktop/Projects/team-ticket-hub`.
+Docker runs in a Colima Linux VM. All seven interfaces bind to localhost.
+
+| Service | Browser URL | What to show |
+| --- | --- | --- |
+| Application | <http://127.0.0.1:3001> | Manager/employee workflows |
+| Grafana | <http://127.0.0.1:3000/d/ticket-poc> | Provisioned container dashboard |
+| Portainer | <https://127.0.0.1:9443> | Containers, networks and volumes |
+| Uptime Kuma | <http://127.0.0.1:3002> | Readiness and homepage availability |
+| Dozzle | <http://127.0.0.1:8081> | Structured application logs |
+| Prometheus | <http://127.0.0.1:9090/targets> | Scrape targets and PromQL |
+| cAdvisor | <http://127.0.0.1:8082> | Exported container resource information |
+
+Monitoring usernames and passwords are in the ignored `secrets/local-access.txt`.
+Portainer uses a self-signed local certificate. Prometheus/cAdvisor host ports are
+provided by `compose.ops.local.yml`; the baseline operations file keeps them internal.
+
+Resume this **already configured** stack from the repository root:
+
+```sh
+colima start
+docker compose --env-file .env -f compose.app.yml up -d --wait
+docker compose --env-file .env -f compose.ops.yml -f compose.ops.local.yml up -d --wait
+```
+
+See [local Docker setup](docs/local-docker.md) for first-time setup, rebuilds, volumes
+and stopping safely. The local Docker database and `data/dashboard.sqlite` are separate
+copies; subsequent writes are not synchronized.
+
+## Run the application from source
+
+Use Node **22.23.3**, pinned in `.nvmrc`. Python 3 runs the host-operations tests.
 
 ```sh
 nvm install
@@ -26,140 +73,95 @@ npm test
 npm run dev
 ```
 
-Open <http://127.0.0.1:5173>. Create your own account; there is no default login.
-Registration requires a date of birth showing an age of at least 18. This is a date
-validation, without identity verification.
+Open <http://127.0.0.1:5173>. Development runs Vite on 5173 and Express on 3001;
+Vite proxies `/api` to Express. Stop the Docker app first if it already owns port 3001.
+If its tools remain running, Kuma will report the Docker app unavailable during that period.
 
-To serve the production frontend locally:
+For a local production build:
 
 ```sh
 npm run build
 npm start
 ```
 
-Open <http://127.0.0.1:3001>. The database defaults to `data/dashboard.sqlite`.
-`HOST`, `PORT`, `DATABASE_PATH`, `COOKIE_SECURE` and `APP_REVISION` can be exported
-before startup. HTTP development uses `COOKIE_SECURE=false`.
-
-## Try the app in Docker
-
-For this Mac's complete local stack, browser URLs and restart commands, see
-[the local Docker guide](docs/local-docker.md).
-
-Use a Linux Docker host with a current Compose plugin. Commands below use an isolated
-local data volume so the managed deployment has its own data.
+Open <http://127.0.0.1:3001>. Express serves `dist/` and the API. The default database
+is `data/dashboard.sqlite`. Register an account, or explicitly seed the fictional demo:
 
 ```sh
-cp .env.example .env
-docker network create ticket-poc-net
-docker build -t ticket-dashboard:local .
-APP_VOLUME=ticket-poc-local-data docker compose --env-file .env -f compose.app.yml -p ticket-local up -d --wait
-curl -fsS http://127.0.0.1:3001/api/health/ready
+npm run seed:demo
 ```
 
-Stop this local project before starting the managed app on port 3001:
+| Role | Demo email | Local demo password |
+| --- | --- | --- |
+| Manager | `manager@example.test` | `Admin@123` |
+| Employee | `alex@example.test` | `Admin@123` |
+| Employee | `sara@example.test` | `Admin@123` |
+| Employee | `demo@example.test` | `Admin@123` |
 
-```sh
-APP_VOLUME=ticket-poc-local-data docker compose --env-file .env -f compose.app.yml -p ticket-local down
-```
+The seed writes eight sample tasks and `.env.demo`; repeated runs preserve sample task
+progress, reset those four accounts' passwords/roles and leave other accounts alone.
+It refuses production mode. Running it on the host does **not** seed the Docker volume.
+The configured Docker demonstration already contains its migrated demo accounts.
 
-The volume remains available for the next local run. Use one app instance and local
-Docker storage for SQLite.
+## Understand the architecture
 
-## Run the DevOps POC
+![Code responsibilities and the HTTP boundary](docs/diagrams/03-code-structure.svg)
 
-Follow [the operations runbook](docs/runbook.md) for Linux setup, management credentials,
-first deployment, timers, monitoring and recovery. Start manually and complete a restore
-and rollback exercise before enabling the deployment timer.
+| Area | Responsibility | Read next |
+| --- | --- | --- |
+| `src/features/`, `src/components/` | React views and reusable controls | [Application architecture](docs/architecture.md) |
+| `src/app/useWorkspace.js`, `src/lib/http.js` | UI state, operations, JSON transport and errors | [A request walkthrough](docs/architecture.md#follow-one-checklist-update) |
+| `backend/`, `server.js` | Middleware, sessions, validation, permissions and SQLite | [API and data model](docs/architecture.md#api-reference) |
+| `Dockerfile`, `compose.*.yml` | Runtime image, networks, ports and storage | [Infrastructure explained](docs/infrastructure.md) |
+| `.github/workflows/ci.yml`, `scripts/` | Verification, release, deployment and recovery | [Delivery and recovery](docs/delivery-and-recovery.md) |
+| `monitoring/` | Prometheus scrape configuration and Grafana provisioning | [Monitoring signals](docs/infrastructure.md#what-each-monitoring-tool-proves) |
 
-| Interface | Docker-host address |
-| --- | --- |
-| Ticket Dashboard | <http://127.0.0.1:3001> |
-| Portainer CE | <https://127.0.0.1:9443> |
-| Grafana | <http://127.0.0.1:3000> |
-| Uptime Kuma | <http://127.0.0.1:3002> |
-| Dozzle | <http://127.0.0.1:8081> |
-| Prometheus and cAdvisor | Docker network only |
+## What is verified, and what is designed
 
-For another computer, use the SSH forwarding commands in the runbook. Management tools
-have their own logins. Portainer's initial certificate is self-signed.
+On **23 October 2026**, the local stack was checked with **20 passing Node tests** on
+Node 22.23.3, **15 passing Python tests**, a real disposable Docker persistence/restore
+exercise, two healthy Prometheus targets and a working six-panel Grafana dashboard.
+The application runs as UID 1000 and its readiness endpoint returns `local-workspace`.
 
-```mermaid
-flowchart LR
-    PR[Pull request] --> CI[Tests, build, container recovery checks]
-    CI --> MAIN[Trusted main release]
-    MAIN --> SCAN[Build once, smoke test, Trivy gate]
-    SCAN --> GHCR[GHCR SHA tag and approved poc tag]
-    GHCR --> HOST[Linux host polls and deploys digest]
-    HOST --> APP[Express + React]
-    APP --> DB[(SQLite volume)]
-    HOST --> OPS[Portainer, Grafana, Kuma, Dozzle]
-    CAD[cAdvisor] --> PROM[Prometheus] --> OPS
-```
+The repository also includes a Linux VPS delivery design: GitHub Actions verifies and
+scans images, GHCR publishes releases, a host timer resolves `poc` to an immutable digest,
+and the operator verifies or recovers the rollout. These local checks do not establish
+live GHCR publication, a deployed VPS, public TLS, functioning Linux timers, external
+alert delivery or off-host recovery. Read the [dated evidence and limitations](docs/verification.md).
 
-The single workflow in `.github/workflows/ci.yml` verifies PRs and main, then permits
-publication only for main. It publishes `sha-<full-source-SHA>` and promotes `poc` after
-tests and scanning. The host resolves `poc` to an immutable registry digest. Configure
-the `verify` required check in GitHub settings; adding a workflow does not enable branch
-protection. Set GHCR package visibility separately if anonymous host pulls are desired.
+For that deployment path, use the [public deployment guide](docs/public-deployment.md)
+and [Linux runbook](docs/runbook.md). `deployment.env.example` is a planning worksheet;
+its copied `deployment.env` is not automatically read by the app or CI.
 
-## Verification and project files
+## Verify the project
 
 ```sh
 npm test
 npm run build
-# Docker host only; this creates and removes disposable test volumes:
-bash scripts/container-smoke.sh ticket-dashboard:local
+node scripts/smoke-test.mjs http://127.0.0.1:3001
+# Uses disposable containers and volumes, preserving the demo database:
+EXPECTED_REVISION=local-workspace bash scripts/container-smoke.sh ticket-dashboard:local
 ```
 
-The tests cover authentication, ownership, health, private logs, live WAL snapshots,
-deployment failure, rollback and state recovery. The container check also verifies
-frontend assets, non-root execution, graceful stop, account/session persistence and
-restore into a separate volume.
+For a real commit-labelled image, use its actual revision instead of `local-workspace`.
+The container test needs Node on the host, Docker and a previously built image.
+The Trivy gate is a separate check: `bash scripts/scan-image.sh ticket-dashboard:local`.
+It can fail for current vulnerability findings; a successful build alone does not imply a clean scan.
 
-See [implementation decisions](docs/implementation.md) for how the three PDF plans were
-reconciled and [acceptance evidence](docs/POC_ACCEPTANCE.md) for verified results and
-remaining host exercises. Docker runtime, GHCR publication and actual alert delivery
-require the deployment environment; generated configuration alone does not establish
-those results.
+## Documentation map
 
-| Path | Purpose |
+| Goal | Document |
 | --- | --- |
-| `src/` | React features, shared components, API client and application controller |
-| `backend/`, `server.js`, `server.test.js` | Backend modules, stable server entry point and regression tests |
-| `Dockerfile`, `compose.app.yml` | Application image, persistent volume and local access |
-| `compose.ops.yml`, `monitoring/` | Private operations tools and provisioned dashboard |
-| `scripts/` | Deployment, smoke checks, snapshots, restore and tests |
-| `systemd/` | Optional deployment and daily backup timers |
-| `docs/runbook.md` | Setup, operation, recovery and troubleshooting |
+| Learn from the beginning | [Learning path](docs/README.md) · [Glossary](docs/glossary.md) |
+| Present and rehearse | [Offline diagram presentation](docs/presentation.html) · [Interview guide](docs/interview-guide.md) |
+| Read code and explain permissions | [Application architecture](docs/architecture.md) |
+| Explain Docker and observability | [Infrastructure](docs/infrastructure.md) |
+| Explain CI/CD, rollback and backups | [Delivery and recovery](docs/delivery-and-recovery.md) |
+| Operate the configured Mac setup | [Local Docker guide](docs/local-docker.md) |
+| Deploy and operate Linux | [Public deployment](docs/public-deployment.md) · [Operations runbook](docs/runbook.md) |
+| Assess evidence and tradeoffs | [Verification](docs/verification.md) · [Design decisions](docs/decisions.md) |
+| Edit or export diagrams | [Diagram atlas](docs/diagrams/README.md) · [Diagram tooling and plugin choice](docs/diagram-tooling.md) |
 
-## Manager and employee demo
-
-The React interface uses the official `@clr/ui` Clarity HTML/CSS design system.
-Main views are Dashboard, Tasks, Users (manager only) and My profile; each team
-member also has a personal workspace at `#users/<id>`. Sign-in is a separate view.
-
-Managers can view the team, create tasks, assign/reassign employees and edit task
-details. Employees see their own/assigned tasks and update assigned checklist
-progress. They cannot change an assigned task’s definition, delete it or assign it
-to another employee. Employees may also keep personal tasks.
-
-Run `npm run seed:demo` to write fictional demo accounts and eight realistic tasks
-directly to local SQLite. Existing non-demo data is preserved. Repeated runs reuse
-the sample tasks and reset only the four explicit demo accounts to their documented
-simple passwords. The command refuses production mode.
-
-All credentials are in `.env.demo` (owner-only permissions, ignored by Git and Docker):
-
-| Role | Email | Password |
-| --- | --- | --- |
-| Manager | manager@example.test | manager123 |
-| Employee | alex@example.test | alex12345 |
-| Employee | sara@example.test | sara12345 |
-| Employee | demo@example.test | demo12345 |
-
-Existing databases receive an additive role/assignment migration. Existing users
-remain employees; public registration and profile edits cannot promote roles.
-See [code architecture](docs/architecture.md) for module boundaries and
-[Clarity’s framework-independent installation guide](https://v15.clarity.design/get-started)
-for the HTML/CSS integration approach. The installed package is version 18.4.0.
+This is a single-instance learning project: no high availability, multi-tenant isolation,
+central log archive, distributed tracing or automatic off-host backups are included.
+Local demo credentials are for this demonstration; public deployment requires its own credentials.

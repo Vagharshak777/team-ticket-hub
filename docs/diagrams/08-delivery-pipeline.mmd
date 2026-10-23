@@ -1,0 +1,15 @@
+flowchart TB
+    change["Pull request or main push"] --> verify["verify job<br/>npm ci → tests → Vite build → Compose/Caddy validation"]
+    verify --> ciimage["Build disposable CI image<br/>Non-root + persistence + stop + restore smoke test"]
+    ciimage --> gate["Trivy scan<br/>Fixable HIGH/CRITICAL findings block the job"]
+    gate --> main{"Trusted main push<br/>or manual run on main?"}
+    main -->|"No"| pr["PR verification ends<br/>Branch protection must be configured separately"]
+    main -->|"Yes"| release["publish job<br/>Build a release image once; test and scan that same image"]
+    release --> ghcr["GHCR<br/>sha-fullCommit tag + immutable sha256 digest"]
+    ghcr --> head{"Still the current main commit?"}
+    head -->|"Yes"| promote["Promote poc channel"]
+    head -->|"No"| keep["Keep source tag; skip channel promotion"]
+    promote --> poll["Configured Linux timer<br/>Poll after each one-minute interval"]
+    poll --> deploy["Resolve channel to digest<br/>Deploy with host verification and recovery"]
+    classDef configured fill:#fff7ed,stroke:#ea580c,color:#7c2d12,stroke-dasharray:5 4
+    class poll,deploy configured

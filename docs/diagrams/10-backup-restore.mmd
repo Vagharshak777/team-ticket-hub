@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    participant Live as Running app / SQLite WAL
+    participant Helper as db-backup.mjs
+    participant Backup as Host backup files
+    participant Restore as New isolated Docker volume
+    participant Check as Restored app on a different port
+    Helper->>Live: Open existing database read-only
+    Live-->>Helper: Online backup API includes committed WAL data
+    Helper->>Helper: Integrity check + required tables + SHA-256
+    Helper->>Backup: Snapshot + metadata, private file permissions
+    Note over Backup: Managed retention: seven daily snapshots + newest predeployment snapshot
+    Backup->>Restore: Check metadata, checksum and approved image; refuse existing volume
+    Restore->>Restore: Verify SQLite integrity and set UID 1000 ownership
+    Restore->>Check: Start separate project / network / port
+    Check->>Check: Verify account, session and known ticket
+    Note over Live,Check: Original data stays in place. An image rollback and a data restore are different operations.
+    Note over Backup,Check: Off-host copying and a production data switch are separate operator actions.

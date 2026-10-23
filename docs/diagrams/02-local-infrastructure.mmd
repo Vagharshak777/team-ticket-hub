@@ -1,0 +1,35 @@
+flowchart TB
+    browser["Browser on this Mac<br/>All published ports bind to 127.0.0.1"]
+    subgraph vm["Colima Linux VM · Docker Engine · 4 CPU / 6 GB RAM / 60 GB data disk"]
+      subgraph poc["ticket-poc-net · app network"]
+        app["app · :3001<br/>React assets + Express"]
+        kuma["kuma · :3001<br/>Also on operations network"]
+      end
+      subgraph ops["ticket-poc-ops_ops · operations network"]
+        grafana["grafana · :3000"]
+        prom["prometheus · :9090"]
+        cad["cadvisor · :8080"]
+        dozzle["dozzle · :8080"]
+        portainer["portainer · :9443"]
+      end
+      data[("ticket-poc-local-data<br/>/app/data/dashboard.sqlite")]
+      tooldata[("Separate named volumes<br/>Grafana, Prometheus, Kuma,<br/>Portainer and Dozzle")]
+      docker["Docker API socket<br/>Privileged administration boundary"]
+    end
+    browser -->|"3001"| app
+    browser -->|"3000"| grafana
+    browser -->|"3002 → 3001"| kuma
+    browser -->|"9443 / HTTPS"| portainer
+    browser -->|"8081 → 8080"| dozzle
+    browser -->|"9090 / local override"| prom
+    browser -->|"8082 → 8080 / local override"| cad
+    app --> data
+    kuma -->|"HTTP readiness probe"| app
+    grafana -->|"PromQL"| prom
+    prom -->|"Scrape metrics"| cad
+    cad -.->|"Linux mounts + socket"| docker
+    portainer -.->|"Manage containers"| docker
+    dozzle -.->|"Read logs through API"| docker
+    grafana --- tooldata
+    prom --- tooldata
+    kuma --- tooldata

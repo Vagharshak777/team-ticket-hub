@@ -1,0 +1,20 @@
+flowchart LR
+    app["App container<br/>Express + React assets"]
+    docker["Docker Engine / Linux cgroups"]
+    cad["cAdvisor<br/>Exports container resource metrics"]
+    prom["Prometheus<br/>Scrapes every 15 seconds<br/>7-day / approx. 2 GB retention"]
+    grafana["Grafana<br/>CPU, memory, network,<br/>scrape health, fresh app series"]
+    kuma["Uptime Kuma<br/>HTTP readiness + homepage<br/>30-second interval; one retry"]
+    logs["Docker JSON logs<br/>10 MB × 3 files per container"]
+    dozzle["Dozzle<br/>Search and inspect current logs"]
+    portainer["Portainer<br/>Inspect and manage Docker resources"]
+    app -->|"Runtime resource use"| docker
+    cad -->|"Reads cgroups / Docker metadata"| docker
+    prom -->|"Pulls /metrics"| cad
+    grafana -->|"Queries PromQL"| prom
+    kuma -->|"HTTP probes"| app
+    app -->|"Structured stdout / stderr"| logs
+    dozzle -->|"Docker log API"| logs
+    portainer -->|"Docker API"| docker
+    note["CPU graphs do not prove HTTP availability.<br/>No app latency metrics, distributed traces,<br/>or external alert destination are configured."]
+    grafana -.-> note

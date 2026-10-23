@@ -1,0 +1,18 @@
+flowchart TB
+    start["Deploy one approved digest<br/>Shared operations lock; recover pending state first"]
+    start --> prep["Validate repository + digest + full source revision<br/>Check disk, pull image and validate Compose"]
+    prep --> backup["If a current release exists:<br/>verify it and take a predeployment snapshot"]
+    backup --> pending["Save pending=candidate before replacing app"]
+    pending --> apply["Recreate app with same database volume<br/>Wait for health; verify readiness, homepage, revision"]
+    apply --> good{"Candidate verified?"}
+    good -->|"Yes"| commit["previous=old current<br/>current=candidate; clear pending and failed"]
+    good -->|"No"| recover["Record failed candidate<br/>Reapply last current image; stop candidate if first deploy"]
+    recover --> recovered{"Recovery verified?"}
+    recovered -->|"Yes"| restored["Clear pending; retain successful current<br/>Return deployment failure to operator"]
+    recovered -->|"No"| blocked["Keep pending for operator / next recovery<br/>Never record failed candidate as successful"]
+    note["Polling skips the recorded failed digest<br/>until a new digest or deliberate retry"]
+    restored -.-> note
+    classDef success fill:#d1fae5,stroke:#059669,color:#064e3b
+    classDef fail fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    class commit success
+    class blocked fail

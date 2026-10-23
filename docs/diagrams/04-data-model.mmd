@@ -1,0 +1,26 @@
+erDiagram
+    USERS ||--o{ SESSIONS : "has"
+    USERS ||--o{ TICKETS : "owns through user_id"
+    USERS o|--o{ TICKETS : "assigned through assignee_id"
+    USERS {
+      INTEGER id PK
+      TEXT name
+      TEXT email UK
+      TEXT birth_date
+      TEXT password_hash "salt:scrypt hash"
+      TEXT role "employee or manager"
+    }
+    SESSIONS {
+      TEXT token_hash PK "SHA-256 of random browser token"
+      INTEGER user_id FK
+      INTEGER expires_at "Unix time in milliseconds"
+    }
+    TICKETS {
+      INTEGER id PK
+      INTEGER user_id FK "creator; not necessarily assignee"
+      INTEGER assignee_id FK "nullable; employee assignment"
+      TEXT name
+      TEXT task
+      TEXT checklist "JSON array of text and done"
+      TEXT created_at "ISO timestamp"
+    }

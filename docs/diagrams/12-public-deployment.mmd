@@ -1,0 +1,20 @@
+flowchart TB
+    public["Public browser"]
+    admin["Operator with SSH access"]
+    ghcr["GHCR<br/>Approved poc channel / immutable digest"]
+    subgraph host["Optional Linux VPS design · separate from the running local demo"]
+      caddy["Caddy · public 80/443<br/>TLS certificate + reverse proxy"]
+      app["App · loopback :3001<br/>COOKIE_SECURE=true / TRUST_PROXY=true"]
+      db[("Persistent app data volume")]
+      timers["systemd timers<br/>Release polling + daily backup"]
+      tools["Optional operations stack<br/>Loopback management ports"]
+      backups[("Local verified backups<br/>Off-host copying still required")]
+    end
+    public -->|"HTTPS to hostname"| caddy
+    caddy -->|"Private Docker network<br/>Host + forwarded protocol"| app
+    app --> db
+    timers -->|"Outbound image pull"| ghcr
+    timers -->|"Apply / verify / recover"| app
+    timers --> backups
+    admin -->|"SSH + explicit local port forwarding"| tools
+    admin -->|"SSH administration"| timers
