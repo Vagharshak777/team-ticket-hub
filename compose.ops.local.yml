@@ -1,0 +1,9 @@
+# Optional browser access for the local monitoring stack.
+# Apply after compose.ops.yml; every published interface stays on loopback.
+services:
+  prometheus:
+    ports:
+      - "127.0.0.1:9090:9090"
+  cadvisor:
+    ports:
+      - "127.0.0.1:8082:8080"
