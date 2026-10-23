@@ -1,0 +1,19 @@
+stateDiagram-v2
+    state "Բաց" as Open
+    state "Ընթացքի մեջ" as InProgress
+    state "Ավարտված" as Completed
+    [*] --> Open: Ստեղծել առաջադրանք՝ չավարտված քայլերով
+    Open --> InProgress: Ավարտել առնվազն մեկ քայլ
+    InProgress --> Completed: Ավարտել բոլոր քայլերը
+    Open --> Completed: Ավարտել միակ քայլը
+    Completed --> InProgress: Վերաբացել ավարտված քայլերից մեկը
+    Completed --> Open: Հանել միակ ավարտված քայլի նշումը
+    InProgress --> Open: Հանել բոլոր նշումները
+    Open --> [*]: Ջնջել՝ թույլտվությամբ
+    InProgress --> [*]: Ջնջել՝ թույլտվությամբ
+    Completed --> [*]: Ջնջել՝ թույլտվությամբ
+    note right of InProgress
+      Կարգավիճակը հաշվարկվում է ստուգացանկի նշումներից։
+      Պահպանվող կարգավիճակի սյունակ չկա։
+      Կատարողը և ստեղծողը տարբեր հասկացություններ են։
+    end note

@@ -1,0 +1,18 @@
+flowchart TB
+    start["Տեղակայել մեկ թույլատրված digest<br/>Ընդհանուր կողպում․ նախ վերականգնել pending վիճակը"]
+    start --> prep["Ստուգել պահոցը, digest-ը և կոդի ամբողջ տարբերակը<br/>Ստուգել սկավառակը, ներբեռնել պատկերը, վավերացնել Compose-ը"]
+    prep --> backup["Եթե ընթացիկ թողարկում կա՝<br/>ստուգել և ստեղծել նախնական պահուստ"]
+    backup --> pending["Գրանցել pending=candidate՝ մինչև փոխարինումը"]
+    pending --> apply["Վերաստեղծել հավելվածը նույն տվյալների հատորով<br/>Սպասել առողջությանը․ ստուգել պատրաստությունը, էջը և տարբերակը"]
+    apply --> good{"Թեկնածուն ստուգվա՞ծ է"}
+    good -->|"Այո"| commit["previous՝ նախկին current<br/>current՝ թեկնածուն․ մաքրել pending և failed"]
+    good -->|"Ոչ"| recover["Գրանցել ձախողված թեկնածուին<br/>Վերադարձնել վերջին current-ը․ առաջին տեղակայման դեպքում կանգնեցնել թեկնածուին"]
+    recover --> recovered{"Վերականգնումը ստուգվա՞ծ է"}
+    recovered -->|"Այո"| restored["Մաքրել pending-ը․ պահել հաջող current-ը<br/>Տեղեկացնել տեղակայման ձախողման մասին"]
+    recovered -->|"Ոչ"| blocked["Պահել pending-ը հաջորդ վերականգնման համար<br/>Ձախողված թեկնածուին հաջող չհամարել"]
+    note["Հարցումը բաց է թողնում ձախողված digest-ը<br/>մինչև նոր digest կամ գիտակցված կրկնափորձ"]
+    restored -.-> note
+    classDef success fill:#d1fae5,stroke:#059669,color:#064e3b
+    classDef fail fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    class commit success
+    class blocked fail

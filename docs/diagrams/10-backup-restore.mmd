@@ -10,7 +10,7 @@ sequenceDiagram
     Helper->>Helper: Integrity check + required tables + SHA-256
     Helper->>Backup: Snapshot + metadata, private file permissions
     Note over Backup: Managed retention: seven daily snapshots + newest predeployment snapshot
-    Backup->>Restore: Check metadata, checksum and approved image; refuse existing volume
+    Backup->>Restore: Check metadata, checksum and approved image, refuse existing volume
     Restore->>Restore: Verify SQLite integrity and set UID 1000 ownership
     Restore->>Check: Start separate project / network / port
     Check->>Check: Verify account, session and known ticket

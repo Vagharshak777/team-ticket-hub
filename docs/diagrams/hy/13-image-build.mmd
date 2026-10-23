@@ -1,0 +1,20 @@
+flowchart LR
+    source["Կոդի աշխատանքային պատճեն<br/>Lockfile, React, Express, backend մոդուլներ"]
+    subgraph build["Կառուցման փուլ · ամրագրված Node 22.23.3 digest"]
+      ci["npm ci<br/>Տեղադրել ամրագրված կախվածությունները"]
+      vite["npm run build<br/>React կոդ → dist ֆայլեր"]
+      prune["npm prune --omit=dev"]
+      ci --> vite --> prune
+    end
+    subgraph runtime["Գործարկման փուլ · նույն ամրագրված Node հիմքը"]
+      copy["Պատճենել dist-ը, գործարկման կախվածությունները,<br/>server.js-ը, backend-ը և պահուստավորման ծրագիրը"]
+      clean["Հեռացնել փաթեթների կառավարիչները<br/>Պատրաստել գրելի /app/data"]
+      user["USER node · UID 1000<br/>node server.js + պատրաստության ստուգում"]
+      copy --> clean --> user
+    end
+    image["ticket-dashboard:local<br/>Մեկ կոնտեյները սպասարկում է UI + API"]
+    data[("Անվանված հատոր<br/>Բազան պահպանվում է կոնտեյների փոխարինումից հետո")]
+    source --> ci
+    prune --> copy
+    user --> image
+    image --- data

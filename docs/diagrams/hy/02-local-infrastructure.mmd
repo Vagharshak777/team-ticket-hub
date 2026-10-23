@@ -1,0 +1,35 @@
+flowchart TB
+    browser["Այս Mac-ի զննարկիչը<br/>Բոլոր հրապարակված պորտերը՝ 127.0.0.1 հասցեով"]
+    subgraph vm["Colima Linux VM · Docker Engine · 4 CPU / 6 GB RAM / 60 GB data disk"]
+      subgraph poc["ticket-poc-net · հավելվածի ցանց"]
+        app["app · :3001<br/>React ֆայլեր + Express"]
+        kuma["kuma · :3001<br/>Նաև գործառնական ցանցում"]
+      end
+      subgraph ops["ticket-poc-ops_ops · գործառնական ցանց"]
+        grafana["grafana · :3000"]
+        prom["prometheus · :9090"]
+        cad["cadvisor · :8080"]
+        dozzle["dozzle · :8080"]
+        portainer["portainer · :9443"]
+      end
+      data[("ticket-poc-local-data<br/>/app/data/dashboard.sqlite")]
+      tooldata[("Առանձին անվանված հատորներ<br/>Grafana, Prometheus, Kuma,<br/>Portainer և Dozzle")]
+      docker["Docker API-ի սոկետ<br/>Արտոնյալ կառավարման սահման"]
+    end
+    browser -->|"3001"| app
+    browser -->|"3000"| grafana
+    browser -->|"3002 → 3001"| kuma
+    browser -->|"9443 / HTTPS"| portainer
+    browser -->|"8081 → 8080"| dozzle
+    browser -->|"9090 / տեղական կարգավորում"| prom
+    browser -->|"8082 → 8080 / տեղական կարգավորում"| cad
+    app --> data
+    kuma -->|"HTTP պատրաստության ստուգում"| app
+    grafana -->|"PromQL"| prom
+    prom -->|"Հավաքել չափումները"| cad
+    cad -.->|"Linux միացումներ + սոկետ"| docker
+    portainer -.->|"Կառավարել կոնտեյներները"| docker
+    dozzle -.->|"Կարդալ մատյանները API-ով"| docker
+    grafana --- tooldata
+    prom --- tooldata
+    kuma --- tooldata

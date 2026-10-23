@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    actor Person as Օգտատեր
+    participant UI as React / HTTP հաճախորդ
+    participant API as Express /api/login
+    participant Crypto as Գաղտնաբառի գործառույթներ
+    participant DB as SQLite
+    Person->>UI: Ուղարկել էլ․ հասցեն և գաղտնաբառը
+    UI->>API: POST JSON՝ նույն աղբյուրից
+    API->>DB: Գտնել օգտատիրոջը նորմալացված էլ․ հասցեով
+    DB-->>API: Օգտատիրոջ գրառում՝ գաղտնաբառի աղավորված հեշով
+    API->>Crypto: scrypt հաշվարկ + պաշտպանված համեմատություն
+    Crypto-->>API: Գաղտնաբառը համապատասխանում է
+    API->>Crypto: Ստեղծել պատահական 32 բայթ թոքեն և SHA-256 հեշ
+    API->>DB: Պահել թոքենի հեշը, օգտատիրոջ ID-ն, յոթ օրվա ժամկետը
+    API-->>UI: Հանրային օգտատիրոջ JSON + HttpOnly cookie
+    UI->>API: GET /api/tickets՝ cookie-ով
+    API->>DB: Ստուգել թոքենի հեշը, ժամկետը և օգտատիրոջը
+    DB-->>API: Հաստատված օգտատեր և տեսանելի առաջադրանքներ
+    API-->>UI: Առաջադրանքների JSON՝ առանց գաղտնաբառի հեշի
+    Note over UI,DB: Զննարկիչն ունի թոքենը, բազան՝ դրա հեշը։ Սա սերվերային աշխատաշրջան է, JWT չէ։

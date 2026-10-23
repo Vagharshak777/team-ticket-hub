@@ -1,0 +1,26 @@
+flowchart LR
+    subgraph client["Զննարկիչ · frontend-ի կոդ"]
+      app["App.jsx<br/>Ընտրում է էջը և կազմում տեսքերը"]
+      views["Գործառնական բաղադրիչներ<br/>Մուտք, վահանակ, առաջադրանքներ, օգտատերեր, պրոֆիլ"]
+      state["useWorkspace<br/>Աշխատաշրջան + առաջադրանքներ + գործողություններ"]
+      http["lib/http.js<br/>JSON, cookie-ներ, սխալներ, չեղարկում"]
+      app --> views
+      views -->|"Հետադարձ կանչեր"| state
+      state --> http
+    end
+    subgraph server["Node.js · backend-ի կոդ"]
+      entry["server.js → runtime.js<br/>Կարգավորում և կենսաշրջան"]
+      middleware["app.js<br/>Մատյաններ → առողջություն → աղբյուր → JSON → աշխատաշրջան"]
+      routes["routes/<br/>HTTP երթուղիներ և թույլտվություններ"]
+      domain["domain/<br/>Վավերացում և հանրային պատասխաններ"]
+      repo["repositories/<br/>SQL հարցումներ և տեսանելի գրառումներ"]
+      security["security/passwords.js<br/>scrypt + թոքենի հեշավորում"]
+      entry --> middleware --> routes
+      routes --> domain
+      routes --> repo
+      routes --> security
+    end
+    db[("database.js → SQLite")]
+    http -->|"HTTP /api + JSON"| middleware
+    repo --> db
+    middleware -->|"Որոշել աշխատաշրջանը"| db

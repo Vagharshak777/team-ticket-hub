@@ -1,0 +1,22 @@
+flowchart LR
+    manager["Ղեկավար<br/>Պլանավորում և հանձնարարում է աշխատանքը"]
+    employee["Աշխատակից<br/>Կատարում է հանձնարարված ստուգացանկերը"]
+    operator["Օպերատոր<br/>Գործարկում և սպասարկում է միջավայրը"]
+    app["Team Ticket Hub<br/>React UI + Express API"]
+    db[("SQLite<br/>Օգտատերեր, աշխատաշրջաններ, առաջադրանքներ")]
+    ops["Գործառնական գործիքներ<br/>Չափումներ, հասանելիություն, մատյաններ, կոնտեյներներ"]
+    delivery["Կարգավորված տեղակայման ուղի<br/>GitHub Actions → GHCR → Linux սերվեր"]
+    manager -->|"Զննարկիչ / HTTP"| app
+    employee -->|"Զննարկիչ / HTTP"| app
+    app -->|"SQL՝ հավելվածի գործընթացում"| db
+    operator -->|"Տեղական զննարկչային միջերեսներ"| ops
+    ops -.->|"Դիտարկել կամ կառավարել"| app
+    delivery -.->|"Թողարկման պատկեր․ VPS փորձարկումը սպասվում է"| app
+    classDef people fill:#e0e7ff,stroke:#4f46e5,color:#172554
+    classDef product fill:#dbeafe,stroke:#2563eb,color:#172554
+    classDef storage fill:#d1fae5,stroke:#059669,color:#064e3b
+    classDef planned fill:#fff7ed,stroke:#ea580c,color:#7c2d12,stroke-dasharray:5 4
+    class manager,employee,operator people
+    class app,ops product
+    class db storage
+    class delivery planned

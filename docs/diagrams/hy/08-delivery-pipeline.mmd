@@ -1,0 +1,15 @@
+flowchart TB
+    change["Pull request կամ main-ի push"] --> verify["verify աշխատանք<br/>npm ci → թեստեր → Vite կառուցում → Compose/Caddy վավերացում"]
+    verify --> ciimage["Կառուցել ժամանակավոր CI պատկեր<br/>Ոչ root + պահպանում + կանգ + վերականգնման ստուգում"]
+    ciimage --> gate["Trivy սկանավորում<br/>Ուղղելի HIGH/CRITICAL խնդիրներն արգելափակում են աշխատանքը"]
+    gate --> main{"Վստահելի main push<br/>կամ ձեռքով գործարկում main-ի՞ վրա"}
+    main -->|"Ոչ"| pr["PR ստուգումն ավարտվում է<br/>Ճյուղի պաշտպանությունը կարգավորվում է առանձին"]
+    main -->|"Այո"| release["publish աշխատանք<br/>Մեկ անգամ կառուցել պատկերը, ստուգել և սկանավորել նույն պատկերը"]
+    release --> ghcr["GHCR<br/>sha-fullCommit պիտակ + անփոփոխ sha256 digest"]
+    ghcr --> head{"Դեռ main-ի վերջին commit-ն է՞"}
+    head -->|"Այո"| promote["Թարմացնել poc ալիքը"]
+    head -->|"Ոչ"| keep["Պահել պիտակը․ չթարմացնել ալիքը"]
+    promote --> poll["Կարգավորված Linux ժամանակաչափ<br/>Ստուգել ամեն մեկ րոպեն մեկ"]
+    poll --> deploy["Որոշել ալիքի digest-ը<br/>Տեղակայել՝ ստուգմամբ և վերականգնմամբ"]
+    classDef configured fill:#fff7ed,stroke:#ea580c,color:#7c2d12,stroke-dasharray:5 4
+    class poll,deploy configured

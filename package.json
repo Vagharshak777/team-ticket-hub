@@ -13,7 +13,9 @@
     "test": "node --test server.test.js backend/assignments.test.js backend/migrations.test.js scripts/db-backup.test.mjs src/lib/http.test.js && python3 -m unittest discover -s scripts -p '*_test.py'",
     "smoke": "node scripts/smoke-test.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
-    "test:frontend": "node --test src/lib/http.test.js"
+    "test:frontend": "node --test src/lib/http.test.js",
+    "docs:build": "python3 scripts/build-docs.py && python3 scripts/build-docs.py --language hy",
+    "docs:serve": "python3 -m http.server 8765 --bind 127.0.0.1"
   },
   "dependencies": {
     "@clr/ui": "^18.4.0",

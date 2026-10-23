@@ -11,11 +11,11 @@ sequenceDiagram
     DB-->>API: User row with salted password hash
     API->>Crypto: scrypt candidate + timing-safe comparison
     Crypto-->>API: Password matches
-    API->>Crypto: Generate random 32-byte token; hash with SHA-256
+    API->>Crypto: Generate random 32-byte token and hash with SHA-256
     API->>DB: Store token hash, user ID, seven-day expiry
     API-->>UI: Public user JSON + HttpOnly session cookie
     UI->>API: GET /api/tickets with cookie
     API->>DB: Match token hash, expiry and user
     DB-->>API: Authenticated user and visible tickets
-    API-->>UI: Ticket JSON; no password hash
+    API-->>UI: Ticket JSON without password hash
     Note over UI,DB: Browser has raw token. Database has its hash. This is a server-side session, not a JWT.

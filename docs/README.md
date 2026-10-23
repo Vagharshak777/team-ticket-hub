@@ -63,7 +63,7 @@ Explain the round trip out loud before introducing Docker or CI/CD.
 
 ## How to use the visuals
 
-Open `docs/presentation.html` directly in a browser. It works offline: SVGs, navigation,
+Open the [English presentation](presentation.html) or [հայերեն ներկայացումը](presentation.hy.html) directly in a browser. It works offline: SVGs, navigation,
 styles and speaker notes are included. Arrow keys change diagrams, +/− zoom, and
 **Print / PDF** prints the complete atlas. Each diagram also has an editable Mermaid
 source and a standalone SVG under [diagrams](diagrams/README.md).
@@ -91,3 +91,16 @@ and the repository's Mermaid workflow.
 
 Use [interview questions](interview-guide.md#questions-to-practice) to test understanding
 rather than memorizing tool names.
+
+## Rebuild and run the diagrams
+
+Run `npm run docs:build` to assemble both offline presentations from the checked-in SVGs.
+Run `npm run docs:serve`, then open <http://127.0.0.1:8765/docs/presentation.html>
+or <http://127.0.0.1:8765/docs/presentation.hy.html>.
+
+Armenian Mermaid sources, SVG exports and translated speaker notes are under
+`docs/diagrams/hy/`. Code identifiers and tool names retain their original spelling.
+To regenerate SVGs, install Mermaid CLI separately and run
+`python3 scripts/build-docs.py --render --language hy --mermaid-cli /path/to/mmdc`.
+Omit `--language hy` for English. Use `--puppeteer-config /path/to/chrome.json`
+when Chrome needs an explicit executable path.

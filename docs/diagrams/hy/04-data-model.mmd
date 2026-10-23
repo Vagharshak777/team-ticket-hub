@@ -1,0 +1,26 @@
+erDiagram
+    USERS ||--o{ SESSIONS : "ունի"
+    USERS ||--o{ TICKETS : "ստեղծել է՝ user_id"
+    USERS o|--o{ TICKETS : "հանձնարարված է՝ assignee_id"
+    USERS {
+      INTEGER id PK
+      TEXT name
+      TEXT email UK
+      TEXT birth_date
+      TEXT password_hash "աղ:scrypt հեշ"
+      TEXT role "աշխատակից կամ ղեկավար"
+    }
+    SESSIONS {
+      TEXT token_hash PK "Զննարկչի պատահական թոքենի SHA-256 հեշ"
+      INTEGER user_id FK
+      INTEGER expires_at "Unix ժամանակ՝ միլիվայրկյաններով"
+    }
+    TICKETS {
+      INTEGER id PK
+      INTEGER user_id FK "ստեղծող․ կարող է չլինել կատարողը"
+      INTEGER assignee_id FK "ընտրովի․ կատարող աշխատակից"
+      TEXT name
+      TEXT task
+      TEXT checklist "text և done դաշտերով JSON զանգված"
+      TEXT created_at "ISO ժամանակային նշում"
+    }

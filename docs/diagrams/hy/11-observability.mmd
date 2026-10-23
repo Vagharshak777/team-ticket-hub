@@ -1,0 +1,20 @@
+flowchart LR
+    app["Հավելվածի կոնտեյներ<br/>Express + React ֆայլեր"]
+    docker["Docker Engine / Linux cgroups"]
+    cad["cAdvisor<br/>Արտահանում է կոնտեյների չափումները"]
+    prom["Prometheus<br/>Հավաքում է ամեն 15 վայրկյանը մեկ<br/>Պահպանում՝ 7 օր / մոտ 2 ԳԲ"]
+    grafana["Grafana<br/>CPU, հիշողություն, ցանց,<br/>հավաքման վիճակ, հավելվածի թարմ շարքեր"]
+    kuma["Uptime Kuma<br/>HTTP պատրաստություն + գլխավոր էջ<br/>30 վայրկյան միջակայք․ մեկ կրկնափորձ"]
+    logs["Docker JSON մատյաններ<br/>10 ՄԲ × 3 ֆայլ՝ յուրաքանչյուր կոնտեյների համար"]
+    dozzle["Dozzle<br/>Որոնել և դիտել ընթացիկ մատյանները"]
+    portainer["Portainer<br/>Դիտել և կառավարել Docker ռեսուրսները"]
+    app -->|"Ռեսուրսների օգտագործում"| docker
+    cad -->|"Կարդում է cgroups / Docker մետատվյալները"| docker
+    prom -->|"Հարցում է /metrics-ը"| cad
+    grafana -->|"Կատարում է PromQL հարցումներ"| prom
+    kuma -->|"HTTP ստուգումներ"| app
+    app -->|"Կառուցվածքային stdout / stderr"| logs
+    dozzle -->|"Docker մատյանների API"| logs
+    portainer -->|"Docker API"| docker
+    note["CPU գրաֆիկները չեն ապացուցում HTTP հասանելիությունը։<br/>Չկան ուշացման չափումներ, բաշխված հետքեր<br/>կամ արտաքին ծանուցումների հասցե։"]
+    grafana -.-> note

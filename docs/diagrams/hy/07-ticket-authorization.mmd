@@ -1,0 +1,17 @@
+flowchart TB
+    req["Հարցում գործող առաջադրանքի համար"] --> auth{"Գործող աշխատաշրջան կա՞"}
+    auth -->|"Ոչ"| unauth["401 · Մուտք գործեք"]
+    auth -->|"Այո"| visible{"Ղեկավա՞ր, ստեղծո՞ղ, թե՞ կատարող"}
+    visible -->|"Ոչ / գրառումը չկա"| missing["404 · Առաջադրանքը չի գտնվել"]
+    visible -->|"Այո"| role{"Ղեկավա՞ր է"}
+    role -->|"Այո"| full["Կարդալ, խմբագրել, ջնջել<br/>Հանձնարարել միայն գործող աշխատակցի կամ չհանձնարարել"]
+    role -->|"Ոչ"| owner{"Այս առաջադրանքի ստեղծո՞ղն է"}
+    owner -->|"Այո"| personal["Կառավարել անձնական առաջադրանքը<br/>Չի կարող փոխել կատարողին"]
+    owner -->|"Ոչ՝ կատարող աշխատակից"| assigned["Կարդալ առաջադրանքը<br/>Փոխել միայն քայլերի done նշումները"]
+    assigned --> checks{"Նույն անունը, նկարագրությունը,<br/>քայլերի քանակն ու տե՞քստը"}
+    checks -->|"Այո / PATCH"| save["Պահել կատարման ընթացքը"]
+    checks -->|"Ոչ / կամ DELETE"| forbidden["403 · Գործողությունն արգելված է"]
+    classDef denied fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    classDef allowed fill:#d1fae5,stroke:#059669,color:#064e3b
+    class unauth,missing,forbidden denied
+    class full,personal,save allowed

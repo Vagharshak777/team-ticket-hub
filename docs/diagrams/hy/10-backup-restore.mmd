@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    participant Live as Աշխատող հավելված / SQLite WAL
+    participant Helper as db-backup.mjs
+    participant Backup as Սերվերի պահուստային ֆայլեր
+    participant Restore as Նոր մեկուսացված Docker հատոր
+    participant Check as Վերականգնված հավելված՝ այլ պորտով
+    Helper->>Live: Բացել բազան միայն կարդալու համար
+    Live-->>Helper: Առցանց պահուստը ներառում է հաստատված WAL տվյալները
+    Helper->>Helper: Ամբողջականության ստուգում + աղյուսակներ + SHA-256
+    Helper->>Backup: Պահուստ + մետատվյալներ, մասնավոր թույլտվություններ
+    Note over Backup: Պահել յոթ օրական պահուստ և վերջին նախատեղակայման պահուստը
+    Backup->>Restore: Ստուգել մետատվյալները, checksum-ը և պատկերը, մերժել առկա հատորը
+    Restore->>Restore: Ստուգել SQLite-ը և սեփականատեր սահմանել UID 1000-ին
+    Restore->>Check: Գործարկել առանձին նախագիծ, ցանց և պորտ
+    Check->>Check: Ստուգել հաշիվը, աշխատաշրջանը և հայտնի առաջադրանքը
+    Note over Live,Check: Սկզբնական տվյալները մնում են տեղում։ Պատկերի հետգլորումը և տվյալների վերականգնումը տարբեր գործողություններ են։
+    Note over Backup,Check: Այլ սերվեր պատճենելը և արտադրական տվյալների փոխարկումը առանձին գործողություններ են։

@@ -1,0 +1,20 @@
+flowchart TB
+    public["Հանրային զննարկիչ"]
+    admin["SSH հասանելիությամբ օպերատոր"]
+    ghcr["GHCR<br/>Թույլատրված poc ալիք / անփոփոխ digest"]
+    subgraph host["Ընտրովի Linux VPS՝ տեղական ցուցադրումից առանձին"]
+      caddy["Caddy · հանրային 80/443<br/>TLS վկայագիր + հակադարձ proxy"]
+      app["Հավելված · loopback :3001<br/>COOKIE_SECURE=true / TRUST_PROXY=true"]
+      db[("Հավելվածի մշտական տվյալների հատոր")]
+      timers["systemd ժամանակաչափեր<br/>Թողարկման ստուգում + օրական պահուստ"]
+      tools["Ընտրովի գործառնական միջավայր<br/>Loopback կառավարման պորտեր"]
+      backups[("Տեղական ստուգված պահուստներ<br/>Այլ սերվեր պատճենելը դեռ անհրաժեշտ է")]
+    end
+    public -->|"HTTPS՝ տիրույթի անունով"| caddy
+    caddy -->|"Մասնավոր Docker ցանց<br/>Host + փոխանցված արձանագրություն"| app
+    app --> db
+    timers -->|"Պատկերի ներբեռնում"| ghcr
+    timers -->|"Կիրառել / ստուգել / վերականգնել"| app
+    timers --> backups
+    admin -->|"SSH + տեղական պորտերի փոխանցում"| tools
+    admin -->|"Կառավարում SSH-ով"| timers
