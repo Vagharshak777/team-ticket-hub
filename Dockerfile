@@ -1,5 +1,5 @@
 # Node patch and multi-platform index digest verified 2026-10-23.
-FROM node:22.23.3-bookworm-slim@sha256:3ed98443660ff48413b5af19ecefce3b9d50845a901a43420d47cc63a9fddbe9 AS build
+FROM node:26.12.0-bookworm-slim@sha256:742a0fe7320e09e0321222b68165e6ac731d30470e7ea7f98f9bfc3a6e1034fe AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -7,7 +7,7 @@ COPY index.html vite.config.js ./
 COPY src ./src
 RUN npm run build && npm prune --omit=dev
 
-FROM node:22.23.3-bookworm-slim@sha256:3ed98443660ff48413b5af19ecefce3b9d50845a901a43420d47cc63a9fddbe9 AS runtime
+FROM node:26.12.0-bookworm-slim@sha256:742a0fe7320e09e0321222b68165e6ac731d30470e7ea7f98f9bfc3a6e1034fe AS runtime
 ARG APP_REVISION=development
 LABEL org.opencontainers.image.source="https://github.com/Vagharshak777/test-task" \
       org.opencontainers.image.revision="${APP_REVISION}"
